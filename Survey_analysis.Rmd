@@ -1,0 +1,464 @@
+---
+title: "Survey_analysis"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+# Hypothesis 1
+
+## Read data
+
+```{r 1, include=TRUE}
+
+library(readxl)
+
+survey <- read_excel("Survey_Analysis.xlsx")
+
+
+```
+
+## Removing wrong data
+
+```{r 2, include=TRUE}
+
+survey$code1=ifelse(survey$In10years_youprefer_CW_than_TW=="Strongly agree"|survey$In10years_youprefer_CW_than_TW=="Agree", 2,ifelse(survey$In10years_youprefer_CW_than_TW=="Strongly disagree"|survey$In10years_youprefer_CW_than_TW=="Disagree", 1,0))
+
+survey$code2=ifelse(survey$In10years_youprefer_TW_than_CW=="Strongly agree"|survey$In10years_youprefer_TW_than_CW=="Agree", 2,ifelse(survey$In10years_youprefer_TW_than_CW=="Strongly disagree"|survey$In10years_youprefer_TW_than_CW=="Disagree", 1,0))
+
+sum= 0
+v=c()
+j=1
+for( i in 1: nrow(survey)){  
+ if( survey$code1[i]==survey$code2[i]) 
+  if( survey$code1[i] !=0){
+    sum= sum +1
+  v[j]=i
+  j=j+1}}
+
+sum
+
+survey=survey[-v,]
+
+```
+
+## Renaming data
+
+```{r 3, include=TRUE}
+
+survey$Gender <- ifelse(survey$Gender == "A man", "Man", "Woman")
+
+```
+
+## Changing data to factors
+
+```{r 4, include=TRUE}
+
+survey$Gender = factor(survey$Gender)
+
+survey$Annual_salary[ survey$Annual_salary == "I prefer not to answer"] = NA
+
+survey$Annual_salary = factor(survey$Annual_salary, c("I don't have a salary","Less than 50K", "Between 50K and 100K", "Between 100K and 150K", "More than 150K"))
+
+survey$Interest_for_TW = factor(survey$Interest_for_TW, c(1,2,3,4,5,6,7,8,9,10))
+
+survey$Age_group = cut(survey$Age, breaks = c(18, 24, 40, 56, Inf), include.lowest = TRUE, right = FALSE, labels = c("Z Generation","Y Generation","X Generation", "Baby-Boomers") )
+
+```
+
+## Creating score
+
+```{r 5, include=TRUE}
+
+survey$Hybridewatches_goodforyou = factor(survey$Hybridewatches_goodforyou, c("Strongly agree", "Agree", "Neutral", "Disagree", "Strongly disagree"))
+
+
+survey$TW_helpsyou_disconnect = factor(survey$TW_helpsyou_disconnect, c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"))
+
+
+survey$Youcouldlivewith_both = factor(survey$Youcouldlivewith_both, c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"))
+
+survey$CW_willreplace_TW = factor(survey$CW_willreplace_TW, c("Strongly agree", "Agree", "Neutral", "Disagree", "Strongly disagree"))
+
+
+survey$CW_and_TW_differentuses_cantbecompared = factor(survey$CW_and_TW_differentuses_cantbecompared, c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"))
+
+
+survey$IF_brandslaunch_TW_youseethebranddifferenlty = factor(survey$IF_brandslaunch_TW_youseethebranddifferenlty, c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"))
+
+
+survey$Notorietywill_decrease_movingawayfromtradition = factor(survey$Notorietywill_decrease_movingawayfromtradition, c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"))
+
+
+survey$Notorietywillincrease_becausecapacityofinnovastion = factor(survey$Notorietywillincrease_becausecapacityofinnovastion, c("Strongly agree", "Agree", "Neutral", "Disagree", "Strongly disagree"))
+
+
+survey$hybride_isnice_compromise = factor(survey$hybride_isnice_compromise, c("Strongly agree", "Agree", "Neutral", "Disagree", "Strongly disagree"))
+
+```
+
+## Calculating Alpha Cronbach
+
+```{r 6, include=TRUE}
+
+library(ltm)
+
+cronbach.alpha(survey[,c(19,24,25,26,27,28,29,30)])
+
+colnames(survey[,c(19,24,25,26,27,28,29,30)])
+
+```
+
+## Creating score
+
+```{r 7, include=TRUE}
+
+set2 = as.data.frame( lapply(survey[,c(19,24,25,26,27,28,29,30)], as.numeric) )
+
+survey$score_H1 = apply(set2, 1, sum)
+
+summary(survey$score_H1)
+
+tapply(survey$score_H1, survey$Gender, mean)
+
+t.test( survey$score_H1, mu=24, alternative = "greater")
+
+```
+
+## Summarising data
+
+```{r 8, include=TRUE}
+
+library(xtable)
+
+summary(survey$score_H1)
+
+```
+
+## Visualization 1
+
+```{r 9, include=TRUE}
+
+library(ggplot2)
+
+ggplot(data = survey, mapping = aes(x=ID, y=score_H1)) + geom_point()+labs(title="Scatter plot of score by respondent", x="Respondent", y="Score")
+
+```
+
+## Visualization 2
+
+```{r 10, include=TRUE}
+
+ggplot(data= survey, aes(x = score_H1)) + geom_histogram( aes(y = stat(width*density)*100 ), color="White"  )+scale_x_continuous("Score", labels = as.character(8:40), breaks = 8:40)+labs(title="Distribution of score in percentage", y="Percentage")
+
+```
+
+## Visualization 3
+
+```{r 11, include=TRUE}
+
+ggplot(data = survey, mapping = aes(x=Interest_for_TW, y=score_H1, group = 1)) + geom_point()+stat_summary(fun =  "mean",  geom = "line")+labs(title="Score of respondents by level of interest", y="Score", x="Are you interested in traditional Swiss watches?")
+
+```
+
+## Visualization 4
+
+```{r 12, include=TRUE}
+
+ggplot(data = survey, mapping = aes(x=Annual_salary, y=score_H1)) + geom_boxplot(width = 0.5) +
+  geom_dotplot(binaxis = "y", stackdir = "center", binwidth = 1, fill = "lightgray", dotsize = 0.6)+
+  labs(x="What is your annual salary?", y="Score")+theme(axis.text.x = element_text(angle = 30))
+
+```
+
+## Calculating Anova 1
+
+```{r 13, include=TRUE}
+
+one.way <- aov( score_H1 ~ Annual_salary, data = survey)
+
+summary(one.way)
+
+```
+
+## Visualization 5
+
+```{r 14, include=TRUE}
+
+ggplot(data = survey, mapping = aes(x=Age_group, y=score_H1)) + geom_boxplot(width = 0.5) +
+  geom_dotplot(binaxis = "y", stackdir = "center", binwidth = 1, fill = "lightgray", dotsize = 0.6)+
+  labs(x="Generation", y="Score")
+
+```
+
+## Calculating Anova 2
+
+```{r 15, include=TRUE}
+
+one.way <- aov( score_H1 ~ Age_group, data = survey)
+
+summary(one.way)
+
+```
+
+## Calculating differences
+
+```{r 16, include=TRUE}
+
+TukeyHSD(one.way)
+
+```
+
+## Visualization 6
+
+```{r 17, include=TRUE}
+
+plot(TukeyHSD(one.way))
+
+```
+
+## Calculating the mean
+
+```{r 18, include=TRUE}
+
+tapply(survey$score_H1, survey$Age_group, mean)
+
+```
+
+# Hypothesis 2
+
+## Creating score
+
+```{r 19, include=TRUE}
+
+survey$Happy_toreceive_CW = factor(survey$Happy_toreceive_CW, c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"))
+
+
+survey$Happy_toreceive_TW = factor(survey$Happy_toreceive_TW, c("Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree"))
+
+```
+
+## Calculating correlation
+
+```{r 20, include=TRUE}
+
+set3 = as.data.frame( lapply(survey[,c(17,18)], as.numeric) )
+
+cor.test(set3$Happy_toreceive_CW, set3$Happy_toreceive_TW, method="spearman")
+
+```
+
+## Creating table
+
+```{r 21, include=TRUE}
+
+table(survey$Happy_toreceive_CW, survey$Happy_toreceive_TW)
+
+```
+
+## Visualization 7
+
+```{r 22, include=TRUE}
+
+barplot(table(survey$Happy_toreceive_CW, survey$Happy_toreceive_TW),     
+        col = 1:5,
+        legend.text = TRUE, 
+        beside = T,
+        args.legend = list(x = "topleft", title = "You would be happy to receive a connected watch"), ylab = "Number of responses", xlab="You would be happy to receive a traditional Swiss watch
+")
+
+```
+
+## Visualization 8
+
+```{r 23, include=TRUE}
+
+barplot(table(survey$Happy_toreceive_TW, survey$Happy_toreceive_CW),     
+        col = 1:5,
+        legend.text = TRUE, 
+        beside = T,
+        args.legend = list(x = "topleft", title="You would be happy to receive a traditional Swiss watch", cex=0.75
+                          ), ylab = "Number of responses", xlab="You would be happy to receive a connected watch")
+
+```
+
+## Comparing with generations
+
+```{r 24, include=TRUE}
+
+mysum <- function(x){
+  sum( x=="Strongly agree" | x=="Agree")
+}
+
+tapply(survey$Happy_toreceive_CW, survey$Age_group, mysum)
+
+tapply(survey$Happy_toreceive_TW, survey$Age_group, mysum)
+
+```
+
+## Comparing with generations
+
+```{r 25, include=TRUE}
+
+mysum <- function(x){
+  sum( x=="Strongly agree" | x=="Agree")
+}
+
+a = tapply(survey$Happy_toreceive_CW, survey$Age_group, mysum) / table(survey$Age_group)*100
+
+a
+
+```
+
+# Comparing with generations
+
+```{r 26, include=TRUE}
+
+
+b = tapply(survey$Happy_toreceive_TW, survey$Age_group, mysum) / table(survey$Age_group)*100
+
+b
+
+```
+
+## Visualization 9
+
+```{r 27, include=TRUE}
+
+z= data.frame( Generation = levels(survey$Age_group), cbind(a,b))
+
+colnames(z)<- c("Generation", "Connected watch", "Traditional Swiss watch")
+
+library(reshape2)
+
+dd = melt(z, variable.name = "Type", value.name = "Percentage")
+
+ggplot(data=dd) + 
+  geom_point(aes( x= Generation , y = Percentage))  + 
+  geom_line(  aes( x= Generation , y = Percentage, group=Type, color=Type))+ylim(0,100)
+
+```
+
+## Creating score
+
+```{r 28, include=TRUE}
+
+mysum <- function(x){
+  sum( x=="Strongly agree" | x=="Agree")
+}
+
+tapply(survey$In10years_youprefer_CW_than_TW, survey$Age_group, mysum)
+
+tapply(survey$In10years_youprefer_TW_than_CW, survey$Age_group, mysum)
+
+```
+
+# Storing in c
+
+```{r 29, include=TRUE}
+
+c = tapply(survey$In10years_youprefer_CW_than_TW, survey$Age_group, mysum) / table(survey$Age_group)*100
+
+c
+
+```
+
+# Storing in d
+
+```{r 30, include=TRUE}
+
+d = tapply(survey$In10years_youprefer_TW_than_CW, survey$Age_group, mysum) / table(survey$Age_group)*100
+
+d
+
+```
+
+## Visualization 10
+
+```{r 31, include=TRUE}
+
+z= data.frame( Generation = levels(survey$Age_group), cbind(c,d))
+
+colnames(z)<- c("Generation", "Connected watch", "Traditional Swiss watch")
+
+library(reshape2)
+
+dd = melt(z, variable.name = "Type", value.name = "Percentage")
+
+ggplot(data=dd) + 
+  geom_point(aes( x= Generation , y = Percentage))  + 
+  geom_line(  aes( x= Generation , y = Percentage, group=Type, color=Type))+ylim(0,100)
+
+```
+
+# Visualization 11
+
+```{r 32, include=TRUE}
+
+ggplot(data=dd) + 
+  geom_col(  aes( x= Generation , y = Percentage, group=Type, fill=Type), position = "dodge")+ylim(0,100)
+
+```
+
+# Visualization 12
+
+```{r 33, include=TRUE}
+
+# Evolution of the percentage of respondant that see themself with \na connected watch rather than a traditional Swiss watch on their wrist
+
+z1= data.frame( Generation = levels(survey$Age_group), cbind(a,c))
+
+colnames(z1)<- c("Generation", "2021", "2031")
+
+dd = melt(z1, variable.name = "Year", value.name = "Percentage")
+
+p1 <- ggplot(data=dd) + 
+  geom_col(  aes( x= Generation , y = Percentage, group=Year, fill=Year), position = "dodge")+ylim(0,100)
+
+p1
+
+```
+
+# Visualization 13
+
+```{r 34, include=TRUE}
+
+# Evolution of the percentage of respondant that see them self with \na traditional Swiss watch rather than a connected watch on their wrist
+
+z2= data.frame( Generation = levels(survey$Age_group), cbind(b,d))
+
+colnames(z2)<- c("Generation", "2021", "2031")
+
+dd = melt(z2, variable.name = "Year", value.name = "Percentage")
+
+p2 <- ggplot(data=dd) + 
+  geom_col(  aes( x= Generation , y = Percentage, group=Year, fill=Year), position = "dodge")+ylim(0,100)+labs(title="", y="")
+
+p2
+
+```
+
+## Visualization 14
+
+```{r 35, include=TRUE}
+
+library(cowplot)
+
+legend <- get_legend(
+  p1 + 
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom")
+)
+
+
+plot_row <- plot_grid( p1+ theme(legend.position="none") , 
+                       p1+ theme(legend.position="none") + ylab(NULL),
+                       labels= c( "Connected watch", "Traditional Swiss watch" ))
+
+title <- ggdraw() + draw_label("Evolution of preferences in 2021 and 2031", fontface='bold')
+
+
+plot_grid(title, plot_row, ncol=1,legend,  rel_heights  = c(0.1, 1))
+
+```
